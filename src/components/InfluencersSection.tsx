@@ -1,60 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, ExternalLink, Play, Heart, MessageCircle } from 'lucide-react';
+import { discordApi, InfluencerMember } from '../services/discordApi';
 import ContactModal from './ContactModal';
 
 const InfluencersSection: React.FC = () => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [influencers, setInfluencers] = useState<InfluencerMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const influencers = [
-    {
-      id: 1,
-      name: 'StreamerPro',
-      platform: 'Twitch',
-      avatar: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=200',
-      followers: '15.2K seguidores',
-      specialty: 'Gaming & Entretenimento',
-      description: 'Streamer focado em jogos competitivos e interação com a comunidade',
-      link: 'https://twitch.tv/streamerpro',
-      color: 'bg-purple-600',
-      verified: true,
-    },
-    {
-      id: 2,
-      name: 'ContentCreator',
-      platform: 'YouTube',
-      avatar: 'https://images.pexels.com/photos/1065084/pexels-photo-1065084.jpeg?auto=compress&cs=tinysrgb&w=200',
-      followers: '8.7K inscritos',
-      specialty: 'Tutoriais & Reviews',
-      description: 'Criadora de conteúdo educativo sobre tecnologia e gaming',
-      link: 'https://youtube.com/@contentcreator',
-      color: 'bg-red-600',
-      verified: true,
-    },
-    {
-      id: 3,
-      name: 'InfluencerGamer',
-      platform: 'Instagram',
-      avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200',
-      followers: '23.1K seguidores',
-      specialty: 'Lifestyle & Gaming',
-      description: 'Influenciador focado em lifestyle gamer e reviews de produtos',
-      link: 'https://instagram.com/influencergamer',
-      color: 'bg-pink-600',
-      verified: true,
-    },
-    {
-      id: 4,
-      name: 'TikTokStar',
-      platform: 'TikTok',
-      avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=200',
-      followers: '45.8K seguidores',
-      specialty: 'Conteúdo Viral',
-      description: 'Criadora de conteúdo viral com foco em trends e entretenimento',
-      link: 'https://tiktok.com/@tiktokstar',
-      color: 'bg-black',
-      verified: true,
-    },
-  ];
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        setLoading(true);
+        const data = await discordApi.getInfluencers();
+        setInfluencers(data);
+        setError(null);
+      } catch (err) {
+        setError('Erro ao carregar influenciadores.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInfluencers();
+  }, []);
 
   const programBenefits = [
     'Divulgação em nossas redes sociais',
@@ -75,6 +45,16 @@ const InfluencersSection: React.FC = () => {
     }
   };
 
+  const getPlatformColor = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'twitch': return 'bg-purple-600';
+      case 'youtube': return 'bg-red-600';
+      case 'instagram': return 'bg-pink-600';
+      case 'tiktok': return 'bg-black';
+      default: return 'bg-gray-600';
+    }
+  };
+
   return (
     <section id="influencers" className="py-20 bg-gradient-to-b from-black to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,79 +68,85 @@ const InfluencersSection: React.FC = () => {
           </p>
         </div>
 
+        {/* Loading and Error States */}
+        {loading && <p className="text-center text-white">Carregando influenciadores...</p>}
+        {error && <p className="text-center text-red-500">{error}</p>}
+
         {/* Influencers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          {influencers.map((influencer) => (
-            <div
-              key={influencer.id}
-              className="group bg-black/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-red-900/30 hover:border-red-600/50 transition-all duration-300 hover:scale-105"
-            >
-              {/* Header com avatar e plataforma */}
-              <div className="relative p-6 pb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="relative">
-                    <img
-                      src={influencer.avatar}
-                      alt={influencer.name}
-                      className="w-16 h-16 rounded-full border-2 border-red-600"
-                    />
-                    {influencer.verified && (
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                    )}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+            {influencers.map((influencer) => (
+              <div
+                key={influencer.id}
+                className="group bg-black/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-red-900/30 hover:border-red-600/50 transition-all duration-300 hover:scale-105"
+              >
+                {/* Header com avatar e plataforma */}
+                <div className="relative p-6 pb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="relative">
+                      <img
+                        src={influencer.avatar ? `https://cdn.discordapp.com/avatars/${influencer.id}/${influencer.avatar}.png` : '/default-avatar.png'}
+                        alt={influencer.username}
+                        className="w-16 h-16 rounded-full border-2 border-red-600"
+                      />
+                      {influencer.verified && (
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl mb-1">{getPlatformIcon(influencer.platform)}</div>
+                      <span className="text-xs text-gray-400 capitalize">{influencer.platform}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl mb-1">{getPlatformIcon(influencer.platform)}</div>
-                    <span className="text-xs text-gray-400">{influencer.platform}</span>
-                  </div>
+
+                  <h3 className="text-xl font-bold text-white mb-1">{influencer.username}</h3>
+                  <p className="text-red-400 font-semibold text-sm mb-2">{influencer.followers}</p>
+                  <span className="inline-block px-3 py-1 bg-red-600/20 text-red-400 text-xs font-medium rounded-full">
+                    {influencer.specialty}
+                  </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-1">{influencer.name}</h3>
-                <p className="text-red-400 font-semibold text-sm mb-2">{influencer.followers}</p>
-                <span className="inline-block px-3 py-1 bg-red-600/20 text-red-400 text-xs font-medium rounded-full">
-                  {influencer.specialty}
-                </span>
-              </div>
+                {/* Conteúdo */}
+                <div className="px-6 pb-6">
+                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                    {influencer.description}
+                  </p>
 
-              {/* Conteúdo */}
-              <div className="px-6 pb-6">
-                <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                  {influencer.description}
-                </p>
+                  {/* Stats simuladas */}
+                  <div className="flex items-center justify-between text-sm text-gray-400 mb-6">
+                    <div className="flex items-center gap-1">
+                      <Heart className="w-4 h-4" />
+                      <span>{Math.floor(Math.random() * 1000) + 500}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{Math.floor(Math.random() * 200) + 50}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Play className="w-4 h-4" />
+                      <span>{Math.floor(Math.random() * 50) + 10}K</span>
+                    </div>
+                  </div>
 
-                {/* Stats simuladas */}
-                <div className="flex items-center justify-between text-sm text-gray-400 mb-6">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>{Math.floor(Math.random() * 1000) + 500}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>{Math.floor(Math.random() * 200) + 50}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Play className="w-4 h-4" />
-                    <span>{Math.floor(Math.random() * 50) + 10}K</span>
-                  </div>
+                  <a
+                    href={influencer.link === '#' ? `https://${influencer.platform}.com/${influencer.username}` : influencer.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`
+                      w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all duration-300 group-hover:scale-105
+                      ${getPlatformColor(influencer.platform)} hover:opacity-90 text-white
+                    `}
+                  >
+                    Seguir
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
-
-                <a
-                  href={influencer.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`
-                    w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all duration-300 group-hover:scale-105
-                    ${influencer.color} hover:opacity-90 text-white
-                  `}
-                >
-                  Seguir
-                  <ExternalLink className="w-4 h-4" />
-                </a>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Programa de Influencers */}
         <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-8 border border-red-900/30">
